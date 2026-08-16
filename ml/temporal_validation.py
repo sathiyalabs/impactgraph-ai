@@ -214,6 +214,60 @@ def main():
         f"Mean improvement: "
         f"{results['improvement'].mean():+.4f}"
     )
+    print()
+    print("=" * 70)
+    print("STABILITY ANALYSIS")
+    print("=" * 70)
+
+    change_mean = results["change_pr_auc"].mean()
+    change_std = results["change_pr_auc"].std()
+
+    indirect_mean = results["indirect_pr_auc"].mean()
+    indirect_std = results["indirect_pr_auc"].std()
+
+    improvement_mean = results["improvement"].mean()
+    improvement_std = results["improvement"].std()
+
+    wins = (
+        results["improvement"] > 0
+    ).sum()
+
+    losses = (
+        results["improvement"] < 0
+    ).sum()
+
+    ties = (
+        results["improvement"] == 0
+    ).sum()
+
+    print(
+        f"Change-only PR-AUC: "
+        f"{change_mean:.4f} ± {change_std:.4f}"
+    )
+
+    print(
+        f"Indirect-impact PR-AUC: "
+        f"{indirect_mean:.4f} ± {indirect_std:.4f}"
+    )
+
+    print(
+        f"Improvement: "
+        f"{improvement_mean:+.4f} ± "
+        f"{improvement_std:.4f}"
+    )
+
+    print()
+    print(
+        f"Indirect impact wins: {wins}/{len(results)}"
+    )
+
+    print(
+        f"Indirect impact loses: {losses}/{len(results)}"
+    )
+
+    print(
+        f"Ties: {ties}/{len(results)}"
+    )
 
 
 if __name__ == "__main__":
