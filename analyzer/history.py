@@ -1,4 +1,5 @@
 from pathlib import Path
+import subprocess
 
 from analyzer.commit_labels import get_commit_subject
 from analyzer.evidence import (
@@ -23,8 +24,6 @@ def get_commit_history(
 ) -> list[str]:
     """Return recent commit hashes."""
 
-    import subprocess
-
     result = subprocess.run(
         [
             "git",
@@ -35,6 +34,8 @@ def get_commit_history(
         cwd=repository_path,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         check=True,
     )
 
@@ -66,17 +67,16 @@ def build_history_dataset(
     max_commits: int = 20,
 ) -> list[dict]:
     """
-    Build historical feature records with:
+    Build historical feature records.
 
+    Includes:
     - change metrics
     - dependency impacts
     - commit classification
     - evidence score
     - future bug-fix distance
     - future bug-fix overlap
-
-    Future bug-fix detection only uses commits
-    inside the selected historical window.
+    - future bug-fix within 50 commits
     """
 
     repository = Path(repository_path)
@@ -113,24 +113,31 @@ def build_history_dataset(
         if not changed_files:
             continue
 
-        # Only commits later than the current commit
-        # inside the selected historical window.
+                # Commits after the current change,
+        # restricted to the selected historical window.
         later_commits = chronological_commits[
             index + 2:
         ]
 
+        # A 50-commit future label is only valid when
+        # the complete 50-commit future window exists.
+        if len(later_commits) < 50:
+            continue
         change_metrics = get_change_metrics(
             repository,
             old_commit,
             new_commit,
         )
 
-        # Build dependency graph from the OLD commit.
+        # Build the dependency graph from the OLD commit
+        # so the current change does not contaminate the graph.
         with temporary_checkout(
             repository,
             old_commit,
         ):
-            graph = build_dependency_graph(repository)
+            graph = build_dependency_graph(
+                repository
+            )
 
             features = build_change_features(
                 graph,
@@ -138,7 +145,6 @@ def build_history_dataset(
                 change_metrics,
             )
 
-        # Analyze the NEW commit.
         commit_subject = get_commit_subject(
             repository,
             new_commit,
@@ -165,16 +171,22 @@ def build_history_dataset(
             record["evidence_score"] = evidence_score
             record["evidence_level"] = evidence_level
 
+            future_distance = get_future_bug_fix_distance(
+                record["file"],
+                later_commits,
+                bug_fix_cache,
+            )
+
             record["future_bug_fix_distance"] = (
-                get_future_bug_fix_distance(
-                    record["file"],
-                    later_commits,
-                    bug_fix_cache,
-                )
+                future_distance
             )
 
             record["future_bug_fix_overlap"] = int(
-                record["future_bug_fix_distance"] > 0
+                future_distance > 0
+            )
+
+            record["future_bug_fix_50"] = int(
+                0 < future_distance <= 50
             )
 
             dataset.append(record)

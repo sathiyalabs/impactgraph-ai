@@ -16,7 +16,9 @@ FEATURE_COLUMNS = [
     "commit_label",
     "evidence_score",
     "evidence_level",
+    "future_bug_fix_distance",
     "future_bug_fix_overlap",
+    "future_bug_fix_50",
 ]
 
 
@@ -38,7 +40,6 @@ def save_features_to_csv(
         newline="",
         encoding="utf-8",
     ) as file:
-
         writer = csv.DictWriter(
             file,
             fieldnames=FEATURE_COLUMNS,

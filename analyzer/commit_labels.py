@@ -20,6 +20,8 @@ def get_commit_subject(
         cwd=repository_path,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         check=True,
     )
 

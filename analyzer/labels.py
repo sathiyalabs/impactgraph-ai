@@ -8,8 +8,44 @@ STRONG_BUG_KEYWORDS = [
     "incorrect",
     "failure",
     "exception",
+    "wrong behavior",
+    "wrong output",
+    "unexpected behavior",
 ]
 
+
+MAINTENANCE_KEYWORDS = [
+    "typo",
+    "typing",
+    "type hint",
+    "type hints",
+    "type annotation",
+    "type annotations",
+    "annotation",
+    "pyright",
+    "mypy",
+    "flake8",
+    "bugbear",
+    "codespell",
+    "lint",
+    "format",
+    "style",
+    "documentation",
+    "docs",
+    "readme",
+    "contributing",
+    "dependency",
+    "dependencies",
+    "pip-compile",
+    "pre-commit",
+    "precommit",
+    "workflow",
+    "github action",
+    "github actions",
+    "rtd build",
+    "release action",
+    "slsa",
+]
 
 BUG_FIX_PATTERNS = [
     "fix ",
@@ -30,36 +66,25 @@ def classify_commit(commit_message: str) -> str:
 
     message = commit_message.lower().strip()
 
+    # Maintenance/tooling fixes take priority.
+    if any(
+        keyword in message
+        for keyword in MAINTENANCE_KEYWORDS
+    ):
+        return "MAINTENANCE_FIX"
+
+    # Strong behavioral bug language.
     if any(
         keyword in message
         for keyword in STRONG_BUG_KEYWORDS
     ):
         return "BUG_FIX"
 
+    # Generic "fix" commits.
     if any(
         pattern in message
         for pattern in BUG_FIX_PATTERNS
     ):
-        maintenance_words = [
-            "typo",
-            "typing",
-            "type",
-            "docs",
-            "documentation",
-            "format",
-            "lint",
-            "style",
-            "dependency",
-            "dependencies",
-            "test",
-        ]
-
-        if any(
-            word in message
-            for word in maintenance_words
-        ):
-            return "MAINTENANCE_FIX"
-
         return "BUG_FIX"
 
     return "OTHER"
@@ -77,7 +102,11 @@ def has_issue_reference(commit_message: str) -> bool:
             commit_message,
         )
     )
-def commit_changes_tests(changed_files: list[str]) -> bool:
+
+
+def commit_changes_tests(
+    changed_files: list[str],
+) -> bool:
     """
     Return True if the commit modifies files that appear
     to be tests.
@@ -86,12 +115,20 @@ def commit_changes_tests(changed_files: list[str]) -> bool:
     return any(
         (
             "/test" in file.replace("\\", "/").lower()
-            or file.replace("\\", "/").lower().startswith("test")
-            or file.replace("\\", "/").lower().endswith("_test.py")
-            or file.replace("\\", "/").lower().endswith("test.py")
+            or file.replace("\\", "/")
+            .lower()
+            .startswith("test")
+            or file.replace("\\", "/")
+            .lower()
+            .endswith("_test.py")
+            or file.replace("\\", "/")
+            .lower()
+            .endswith("test.py")
         )
         for file in changed_files
     )
+
+
 BEHAVIOR_CHANGE_KEYWORDS = [
     "settle",
     "correct",
@@ -103,7 +140,11 @@ BEHAVIOR_CHANGE_KEYWORDS = [
     "handle",
     "ensure",
 ]
-def has_behavior_change_language(commit_message: str) -> bool:
+
+
+def has_behavior_change_language(
+    commit_message: str,
+) -> bool:
     """
     Detect language suggesting a behavioral correction.
     This is evidence only, not a bug label.
