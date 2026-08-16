@@ -1,14 +1,25 @@
 import { useState } from "react";
 import "./App.css";
 
+const DEFAULT_REPOSITORY = "data/real_repos/flask";
+const DEFAULT_COMMIT = "d8eaaba8";
+
 function App() {
-  const [repository, setRepository] = useState("data/real_repos/flask");
-  const [commit, setCommit] = useState("2a8a38b0");
+  const [repository, setRepository] = useState(DEFAULT_REPOSITORY);
+  const [commit, setCommit] = useState(DEFAULT_COMMIT);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   async function analyzeCommit() {
+    const trimmedRepository = repository.trim();
+    const trimmedCommit = commit.trim();
+
+    if (!trimmedRepository || !trimmedCommit) {
+      setError("Repository and commit SHA are required.");
+      return;
+    }
+
     setLoading(true);
     setError("");
     setResult(null);
@@ -20,12 +31,13 @@ function App() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          repository: repository.trim(),
-          commit: commit.trim(),
+          repository: trimmedRepository,
+          commit: trimmedCommit,
         }),
       });
 
-      const contentType = response.headers.get("content-type") || "";
+      const contentType =
+        response.headers.get("content-type") || "";
 
       let data;
 
@@ -33,6 +45,7 @@ function App() {
         data = await response.json();
       } else {
         const text = await response.text();
+
         throw new Error(
           text || `Server returned HTTP ${response.status}.`
         );
@@ -56,8 +69,23 @@ function App() {
     }
   }
 
+  function handleSubmit(event) {
+    event.preventDefault();
+    analyzeCommit();
+  }
+
+  function handleReset() {
+    setRepository(DEFAULT_REPOSITORY);
+    setCommit(DEFAULT_COMMIT);
+    setResult(null);
+    setError("");
+  }
+
   const probability = result
-    ? result.risk_probability * 100
+    ? Math.max(
+        0,
+        Math.min(100, result.risk_probability * 100)
+      )
     : 0;
 
   const totalDirectImpact = result
@@ -88,12 +116,20 @@ function App() {
       )
     : [];
 
+  const riskLevel = result?.risk_level || "";
+
   return (
     <div className="app">
       <header className="header">
         <div>
           <div className="brand">
-            <span className="brand-mark">IG</span>
+            <span
+              className="brand-mark"
+              aria-hidden="true"
+            >
+              IG
+            </span>
+
             <span>ImpactGraph AI</span>
           </div>
 
@@ -102,8 +138,14 @@ function App() {
           </p>
         </div>
 
-        <div className="status">
-          <span className="status-dot"></span>
+        <div
+          className="status"
+          aria-label="API status"
+        >
+          <span
+            className="status-dot"
+            aria-hidden="true"
+          />
           API Ready
         </div>
       </header>
@@ -123,7 +165,8 @@ function App() {
 
           <p className="hero-text">
             Analyze a Git commit using code-change metrics,
-            dependency impact, and a trained Random Forest model.
+            dependency impact, and a trained Random Forest
+            model.
           </p>
         </section>
 
@@ -131,6 +174,10 @@ function App() {
         <section className="analysis-card">
           <div className="card-heading">
             <div>
+              <p className="eyebrow">
+                ANALYSIS INPUT
+              </p>
+
               <h2>Analyze a commit</h2>
 
               <p>
@@ -139,53 +186,85 @@ function App() {
             </div>
           </div>
 
-          <div className="form-grid">
-            <label>
-              <span>Repository</span>
-
-              <input
-                value={repository}
-                onChange={(event) =>
-                  setRepository(event.target.value)
-                }
-                placeholder="data/real_repos/flask"
-                disabled={loading}
-              />
-            </label>
-
-            <label>
-              <span>Commit</span>
-
-              <input
-                value={commit}
-                onChange={(event) =>
-                  setCommit(event.target.value)
-                }
-                placeholder="2a8a38b0"
-                disabled={loading}
-              />
-            </label>
-          </div>
-
-          <button
-            type="button"
-            className="analyze-button"
-            onClick={analyzeCommit}
-            disabled={
-              loading ||
-              !repository.trim() ||
-              !commit.trim()
-            }
+          <form
+            onSubmit={handleSubmit}
+            noValidate
           >
-            {loading
-              ? "Analyzing..."
-              : "Analyze Commit →"}
-          </button>
+            <div className="form-grid">
+              <label htmlFor="repository">
+                <span>Repository</span>
+
+                <input
+                  id="repository"
+                  value={repository}
+                  onChange={(event) =>
+                    setRepository(event.target.value)
+                  }
+                  placeholder={DEFAULT_REPOSITORY}
+                  autoComplete="off"
+                  spellCheck="false"
+                  disabled={loading}
+                />
+              </label>
+
+              <label htmlFor="commit">
+                <span>Commit SHA</span>
+
+                <input
+                  id="commit"
+                  value={commit}
+                  onChange={(event) =>
+                    setCommit(event.target.value)
+                  }
+                  placeholder={DEFAULT_COMMIT}
+                  autoComplete="off"
+                  spellCheck="false"
+                  disabled={loading}
+                />
+              </label>
+            </div>
+
+            <div className="form-actions">
+              <button
+                type="submit"
+                className="analyze-button"
+                disabled={
+                  loading ||
+                  !repository.trim() ||
+                  !commit.trim()
+                }
+              >
+                {loading ? (
+                  <>
+                    <span
+                      className="button-spinner"
+                      aria-hidden="true"
+                    />
+                    Analyzing...
+                  </>
+                ) : (
+                  "Analyze Commit →"
+                )}
+              </button>
+
+              {(result || error) && !loading && (
+                <button
+                  type="button"
+                  className="reset-button"
+                  onClick={handleReset}
+                >
+                  Reset
+                </button>
+              )}
+            </div>
+          </form>
 
           {error && (
-            <div className="error-box">
+            <div
+              className="error-box"
+              role="alert"
+            >
               <strong>Analysis failed</strong>
-
               <span>{error}</span>
             </div>
           )}
@@ -202,20 +281,33 @@ function App() {
                 </p>
 
                 <h2>
-                  Commit {result.commit.slice(0, 12)}
+                  Commit{" "}
+                  <code>
+                    {result.commit.slice(0, 12)}
+                  </code>
                 </h2>
+
+                <p className="result-meta">
+                  Repository:{" "}
+                  <span>{repository.trim()}</span>
+                  {" · "}
+                  Parent:{" "}
+                  <span>
+                    {result.old_commit?.slice(0, 12)}
+                  </span>
+                </p>
               </div>
 
               <div
                 className={`risk-badge ${String(
-                  result.risk_level
+                  riskLevel
                 ).toLowerCase()}`}
               >
-                {result.risk_level} RISK
+                {riskLevel} RISK
               </div>
             </section>
 
-            {/* SUMMARY METRICS */}
+            {/* SUMMARY */}
             <section className="metrics-grid">
               <div className="metric-card">
                 <span>Risk Probability</span>
@@ -223,6 +315,15 @@ function App() {
                 <strong>
                   {probability.toFixed(2)}%
                 </strong>
+
+                <div className="metric-progress">
+                  <div
+                    className="metric-progress-fill"
+                    style={{
+                      width: `${probability}%`,
+                    }}
+                  />
+                </div>
               </div>
 
               <div className="metric-card">
@@ -231,6 +332,10 @@ function App() {
                 <strong>
                   {result.changed_files.length}
                 </strong>
+
+                <small>
+                  analyzed files
+                </small>
               </div>
 
               <div className="metric-card">
@@ -239,6 +344,10 @@ function App() {
                 <strong>
                   {totalDirectImpact}
                 </strong>
+
+                <small>
+                  direct dependents
+                </small>
               </div>
 
               <div className="metric-card">
@@ -247,6 +356,10 @@ function App() {
                 <strong>
                   {totalIndirectImpact}
                 </strong>
+
+                <small>
+                  downstream dependents
+                </small>
               </div>
             </section>
 
@@ -262,13 +375,22 @@ function App() {
                     File-level predictions
                   </h2>
                 </div>
+
+                <span className="panel-count">
+                  {sortedPredictions.length} files
+                </span>
               </div>
 
               <div className="file-list">
                 {sortedPredictions.map(
                   (prediction) => {
-                    const fileRisk =
-                      prediction.probability * 100;
+                    const fileRisk = Math.max(
+                      0,
+                      Math.min(
+                        100,
+                        prediction.probability * 100
+                      )
+                    );
 
                     const features =
                       prediction.features || {};
@@ -285,19 +407,29 @@ function App() {
 
                           <div className="file-details">
                             <span>
-                              +{features.lines_added || 0} added
+                              +
+                              {features.lines_added ||
+                                0}{" "}
+                              added
                             </span>
 
                             <span>
-                              -{features.lines_deleted || 0} deleted
+                              -
+                              {features.lines_deleted ||
+                                0}{" "}
+                              deleted
                             </span>
 
                             <span>
-                              {features.direct_impacts || 0} direct
+                              {features.direct_impacts ||
+                                0}{" "}
+                              direct
                             </span>
 
                             <span>
-                              {features.indirect_impacts || 0} indirect
+                              {features.indirect_impacts ||
+                                0}{" "}
+                              indirect
                             </span>
                           </div>
                         </div>
@@ -329,6 +461,11 @@ function App() {
                   <h2>
                     Feature importance
                   </h2>
+
+                  <p className="panel-description">
+                    Relative contribution of each model
+                    feature to the prediction.
+                  </p>
                 </div>
               </div>
 
@@ -376,26 +513,30 @@ function App() {
         {/* EMPTY STATE */}
         {!result && !loading && !error && (
           <section className="empty-state">
-            <div className="empty-icon">
+            <div
+              className="empty-icon"
+              aria-hidden="true"
+            >
               ◈
             </div>
 
-            <h2>
-              Ready to analyze
-            </h2>
+            <h2>Ready to analyze</h2>
 
             <p>
               Enter a repository and commit above
               to generate a risk assessment.
             </p>
+
+            <div className="demo-hint">
+              Demo commit:{" "}
+              <code>{DEFAULT_COMMIT}</code>
+            </div>
           </section>
         )}
       </main>
 
       <footer>
-        <span>
-          ImpactGraph AI
-        </span>
+        <span>ImpactGraph AI</span>
 
         <span>
           Dependency-aware ML risk prediction
