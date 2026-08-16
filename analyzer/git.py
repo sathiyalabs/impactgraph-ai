@@ -1,5 +1,4 @@
 import subprocess
-from pathlib import Path
 
 
 def get_changed_files(
@@ -38,15 +37,16 @@ def get_commit_changed_files(
 ) -> list[str]:
     """
     Return files changed by a single Git commit.
+
+    Compares the commit with its first parent.
     """
 
     result = subprocess.run(
         [
             "git",
-            "diff-tree",
-            "--no-commit-id",
+            "diff",
             "--name-only",
-            "-r",
+            f"{commit}^",
             commit,
         ],
         cwd=repository_path,
@@ -60,6 +60,8 @@ def get_commit_changed_files(
         for line in result.stdout.splitlines()
         if line.strip()
     ]
+
+
 def get_commits_after(
     repository_path: str,
     commit: str,
