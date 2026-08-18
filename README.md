@@ -2,52 +2,52 @@
 
 > Dependency-aware machine learning for predicting future bug-fix risk in Git commits.
 
-ImpactGraph AI analyzes a Git commit, combines code-change metrics with dependency-graph impact, and uses a machine-learning model to estimate whether changed code is likely to require a future bug fix.
+ImpactGraph AI analyzes Git commits and combines code-change metrics with dependency-graph impact to estimate future bug-fix risk at the file and commit level.
 
-The core idea is simple:
+The core idea is:
 
-**A change can be risky not only because of how much code it modifies, but also because of how many parts of the codebase depend on it.**
+**A change can be risky not only because of how much code it modifies, but also because of how many parts of the codebase depend on the changed code.**
 
 ---
 
 ## Overview
 
-Traditional change-risk models often rely primarily on metrics such as:
+Traditional change-risk models often rely primarily on:
 
 - Lines added
 - Lines deleted
 - Total lines changed
 
-ImpactGraph AI adds structural information from the repository's dependency graph:
+ImpactGraph AI adds structural information from the repository dependency graph:
 
 - Direct dependency impacts
 - Indirect dependency impacts
 
-These signals are combined and passed to a Random Forest classifier.
+These signals are combined with change metrics and passed to a Random Forest classifier.
 
 ```text
 Git Commit
-    │
-    ├── Changed files
-    └── Line-change metrics
-             │
-             ▼
+    |
+    +-- Changed files
+    +-- Change metrics
+            |
+            v
     Dependency Graph
-             │
-             ├── Direct impacts
-             └── Indirect impacts
-             │
-             ▼
-      Feature Engineering
-             │
-             ▼
-      Random Forest Model
-             │
-             ▼
-      Risk Probability
-             │
-             ▼
+            |
+            +-- Direct impacts
+            +-- Indirect impacts
+            |
+            v
+    Feature Engineering
+            |
+            v
+    Random Forest Model
+            |
+            v
+    Risk Probability
+            |
+            v
         Flask API
-             │
-             ▼
-       React Dashboard
+            |
+            v
+      React Dashboard
