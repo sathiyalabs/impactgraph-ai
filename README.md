@@ -51,3 +51,18 @@ Git Commit
             |
             v
       React Dashboard
+```
+
+## Local setup and verification
+
+Use Python 3.12 and install `requirements.txt` in a virtual environment. The integration tests use a pinned, read-only Flask checkout, which is intentionally excluded from this repository:
+
+```sh
+python -m pip install -r requirements.txt
+python scripts/setup_test_repository.py
+python -m pytest -q
+```
+
+The fixture setup downloads only the pinned commit and its parent. It refuses to overwrite an existing checkout. The new history/checkout regression tests create their own temporary repositories.
+
+Dataset generation fetches the requested historical window plus 50 commits of future-label evidence. A repository needs at least 52 commits with relevant Python changes for the first labeled example. Insufficient history raises an actionable error without overwriting an existing dataset. Temporary analysis restores the original branch or detached HEAD.

@@ -12,8 +12,9 @@ from analyzer.metrics import get_change_metrics
 from analyzer.repository import temporary_checkout
 
 
-MODEL_PATH = Path("models/impactgraph_rf.joblib")
-FEATURE_PATH = Path("models/features.joblib")
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+MODEL_PATH = PROJECT_ROOT / "models/impactgraph_rf.joblib"
+FEATURE_PATH = PROJECT_ROOT / "models/features.joblib"
 
 
 def load_model():

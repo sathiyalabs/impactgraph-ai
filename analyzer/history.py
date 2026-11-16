@@ -81,9 +81,15 @@ def build_history_dataset(
 
     repository = Path(repository_path)
 
+    if max_commits < 2:
+        raise ValueError("Select at least two commits to build historical examples.")
+
+    # Fetch a full future-label window in addition to the requested history.
+    # The newest 50 commits are label evidence, not training examples.
+    future_window = 50
     commits = get_commit_history(
         repository,
-        max_commits,
+        max_commits + future_window,
     )
 
     chronological_commits = list(
@@ -113,7 +119,7 @@ def build_history_dataset(
         if not changed_files:
             continue
 
-                # Commits after the current change,
+        # Commits after the current change,
         # restricted to the selected historical window.
         later_commits = chronological_commits[
             index + 2:
@@ -121,7 +127,7 @@ def build_history_dataset(
 
         # A 50-commit future label is only valid when
         # the complete 50-commit future window exists.
-        if len(later_commits) < 50:
+        if len(later_commits) < future_window:
             continue
         change_metrics = get_change_metrics(
             repository,

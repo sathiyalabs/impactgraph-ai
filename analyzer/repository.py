@@ -55,9 +55,16 @@ def temporary_checkout(
     """
 
     original_commit = get_current_commit(repository_path)
+    branch = subprocess.run(
+        ["git", "symbolic-ref", "--quiet", "--short", "HEAD"],
+        cwd=repository_path,
+        capture_output=True,
+        text=True,
+    )
+    original_ref = branch.stdout.strip() if branch.returncode == 0 else original_commit
 
     try:
         checkout_commit(repository_path, commit)
         yield
     finally:
-        restore_commit(repository_path, original_commit)
+        restore_commit(repository_path, original_ref)

@@ -25,6 +25,13 @@ def generate_dataset(
         max_commits,
     )
 
+    if not data:
+        raise ValueError(
+            "No training examples have a complete 50-commit future window. "
+            "Use a repository with at least 52 commits and Python changes. "
+            "The output file has not been changed."
+        )
+
     save_features_to_csv(
         data,
         output_path,
